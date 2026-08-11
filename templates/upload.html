@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Upload Billing CSV</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-row">
+          <div>
+            <h1>Upload Billing CSV</h1>
+            <p>Upload a file with AWS/Azure/GCP cost rows to view a real dataset in the dashboard.</p>
+          </div>
+          <div>
+            <a class="button" href="/">Back to dashboard</a>
+          </div>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-grid">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="card">
+        <form method="post" enctype="multipart/form-data">
+          <label class="file-label">
+            Select billing CSV file
+            <input type="file" name="billing_csv" accept=".csv" required>
+          </label>
+          <button class="button" type="submit">Upload and view dashboard</button>
+        </form>
+      </div>
+
+      <section class="upload-info">
+        <h2>CSV format</h2>
+        <p>Use this header line in your CSV file:</p>
+        <pre>provider,account,resource,service,cost,usage_hours,project,environment,date</pre>
+        <p>Supported date formats: <strong>YYYY-MM-DD</strong>, <strong>DD/MM/YYYY</strong>, <strong>MM/DD/YYYY</strong>, <strong>Mon YYYY</strong>.</p>
+      </section>
+    </div>
+  </body>
+</html>

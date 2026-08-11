@@ -1,0 +1,269 @@
+import csv
+from collections import defaultdict
+from datetime import datetime
+
+SAMPLE_CSV_HEADERS = [
+    'provider',
+    'account',
+    'resource',
+    'service',
+    'cost',
+    'usage_hours',
+    'project',
+    'environment',
+    'date',
+]
+
+
+def load_mock_cost_data():
+    return [
+        {
+            'provider': 'AWS',
+            'account': 'aws-prod-001',
+            'resource': 'ec2-prod-app-1',
+            'service': 'EC2',
+            'cost': 860.50,
+            'usage_hours': 720,
+            'project': 'Customer Portal',
+            'environment': 'prod',
+            'date': datetime(2026, 7, 1).date(),
+        },
+        {
+            'provider': 'AWS',
+            'account': 'aws-dev-001',
+            'resource': 'ec2-dev-test',
+            'service': 'EC2',
+            'cost': 120.75,
+            'usage_hours': 60,
+            'project': 'Internal Tools',
+            'environment': 'dev',
+            'date': datetime(2026, 7, 1).date(),
+        },
+        {
+            'provider': 'Azure',
+            'account': 'azure-ops-001',
+            'resource': 'vm-ops-data',
+            'service': 'Virtual Machine',
+            'cost': 540.80,
+            'usage_hours': 680,
+            'project': 'Operations',
+            'environment': 'prod',
+            'date': datetime(2026, 7, 1).date(),
+        },
+        {
+            'provider': 'Azure',
+            'account': 'azure-data-001',
+            'resource': 'sql-data-warehouse',
+            'service': 'SQL Database',
+            'cost': 420.20,
+            'usage_hours': 480,
+            'project': 'Analytics',
+            'environment': 'prod',
+            'date': datetime(2026, 7, 1).date(),
+        },
+        {
+            'provider': 'GCP',
+            'account': 'gcp-project-001',
+            'resource': 'gke-cluster-1',
+            'service': 'GKE',
+            'cost': 310.40,
+            'usage_hours': 720,
+            'project': 'AI Platform',
+            'environment': 'prod',
+            'date': datetime(2026, 7, 1).date(),
+        },
+        {
+            'provider': 'GCP',
+            'account': 'gcp-dev-001',
+            'resource': 'storage-backup',
+            'service': 'Cloud Storage',
+            'cost': 95.20,
+            'usage_hours': 720,
+            'project': 'Internal Tools',
+            'environment': 'dev',
+            'date': datetime(2026, 7, 1).date(),
+        },
+        {
+            'provider': 'AWS',
+            'account': 'aws-prod-002',
+            'resource': 'rds-order-db',
+            'service': 'RDS',
+            'cost': 615.00,
+            'usage_hours': 720,
+            'project': 'Customer Portal',
+            'environment': 'prod',
+            'date': datetime(2026, 6, 1).date(),
+        },
+        {
+            'provider': 'Azure',
+            'account': 'azure-prod-002',
+            'resource': 'app-service-prod',
+            'service': 'App Service',
+            'cost': 220.35,
+            'usage_hours': 720,
+            'project': 'Operations',
+            'environment': 'prod',
+            'date': datetime(2026, 6, 1).date(),
+        },
+        {
+            'provider': 'GCP',
+            'account': 'gcp-ops-001',
+            'resource': 'compute-engine-1',
+            'service': 'Compute Engine',
+            'cost': 180.60,
+            'usage_hours': 480,
+            'project': 'Analytics',
+            'environment': 'prod',
+            'date': datetime(2026, 6, 1).date(),
+        },
+        {
+            'provider': 'AWS',
+            'account': 'aws-test-001',
+            'resource': 'ec2-test-1',
+            'service': 'EC2',
+            'cost': 48.40,
+            'usage_hours': 100,
+            'project': 'Internal Tools',
+            'environment': 'dev',
+            'date': datetime(2026, 6, 1).date(),
+        },
+    ]
+
+
+def aggregate_costs(rows):
+    total_cost = sum(row['cost'] for row in rows)
+    cost_by_provider = {}
+    cost_by_project = {}
+
+    for row in rows:
+        cost_by_provider[row['provider']] = cost_by_provider.get(row['provider'], 0.0) + row['cost']
+        cost_by_project[row['project']] = cost_by_project.get(row['project'], 0.0) + row['cost']
+
+    top_resources = sorted(rows, key=lambda row: row['cost'], reverse=True)[:6]
+
+    return {
+        'total_cost': round(total_cost, 2),
+        'cost_by_provider': cost_by_provider,
+        'cost_by_project': cost_by_project,
+        'top_resources': top_resources,
+    }
+
+
+def get_optimization_recommendations(rows):
+    suggestions = []
+
+    for row in rows:
+        if row['service'] in ('EC2', 'Virtual Machine', 'GKE', 'RDS') and row['cost'] > 500:
+            suggestions.append(
+                f"Check rightsizing for {row['resource']} ({row['provider']}) because it costs ${row['cost']:.2f}."
+            )
+        if row['service'] == 'Cloud Storage' and row['usage_hours'] < 200:
+            suggestions.append(
+                f"Review {row['resource']} in {row['provider']} for archive or lower-cost storage tier."
+            )
+        if row['environment'] == 'dev' and row['usage_hours'] > 600:
+            suggestions.append(
+                f"Consider scheduling {row['resource']} in {row['provider']} to shut down during off-hours."
+            )
+        if row['environment'] == 'prod' and row['cost'] < 100 and row['service'] == 'App Service':
+            suggestions.append(
+                f"Confirm {row['resource']} in {row['provider']} is right-sized for production use."
+            )
+
+    return suggestions if suggestions else ['All mock resources look healthy for this demo.']
+
+
+def get_budget_alerts(rows, budgets=None):
+    if budgets is None:
+        budgets = {
+            'AWS': 1800,
+            'Azure': 1200,
+            'GCP': 700,
+        }
+
+    alerts = []
+    provider_totals = defaultdict(float)
+
+    for row in rows:
+        provider_totals[row['provider']] += row['cost']
+
+    for provider, limit in budgets.items():
+        spent = provider_totals.get(provider, 0.0)
+        if spent >= limit:
+            alerts.append(f"{provider} spend is above the budget of ${limit:.2f}: current spend is ${spent:.2f}.")
+        elif spent >= limit * 0.8:
+            alerts.append(f"{provider} spend is close to budget: ${spent:.2f} of ${limit:.2f}.")
+
+    return alerts
+
+
+def monthly_costs(rows):
+    monthly = defaultdict(float)
+    for row in rows:
+        label = row['date'].strftime('%b %Y')
+        monthly[label] += row['cost']
+
+    sorted_months = sorted(monthly.items(), key=lambda item: datetime.strptime(item[0], '%b %Y'))
+    labels = [label for label, _ in sorted_months]
+    values = [round(value, 2) for _, value in sorted_months]
+    return labels, values
+
+
+def provider_percentages(rows):
+    provider_totals = defaultdict(float)
+    for row in rows:
+        provider_totals[row['provider']] += row['cost']
+
+    total = sum(provider_totals.values())
+    labels = []
+    values = []
+    for provider, amount in provider_totals.items():
+        labels.append(provider)
+        values.append(round((amount / total) * 100, 1) if total else 0)
+
+    return labels, values
+
+
+def parse_csv_rows(file):
+    try:
+        sample = file.read()
+        if isinstance(sample, bytes):
+            sample = sample.decode('utf-8')
+        file.seek(0)
+    except Exception:
+        raise ValueError('Unable to read CSV file.')
+
+    reader = csv.DictReader(sample.splitlines())
+    if not reader.fieldnames or not set(SAMPLE_CSV_HEADERS).issubset(set(reader.fieldnames)):
+        raise ValueError('CSV must include headers: ' + ', '.join(SAMPLE_CSV_HEADERS))
+
+    rows = [normalize_row(row) for row in reader if row.get('provider')]
+    if not rows:
+        raise ValueError('CSV file contains no valid cost rows.')
+    return rows
+
+
+def normalize_row(row):
+    try:
+        return {
+            'provider': row['provider'].strip(),
+            'account': row['account'].strip(),
+            'resource': row['resource'].strip(),
+            'service': row['service'].strip(),
+            'cost': float(row['cost']),
+            'usage_hours': float(row['usage_hours']),
+            'project': row['project'].strip(),
+            'environment': row['environment'].strip(),
+            'date': parse_date(row['date']),
+        }
+    except Exception as exc:
+        raise ValueError(f'Invalid CSV row values: {exc}')
+
+
+def parse_date(value):
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%b %Y'):
+        try:
+            return datetime.strptime(value.strip(), fmt).date()
+        except Exception:
+            continue
+    raise ValueError('Date must use YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY or Mon YYYY format.')

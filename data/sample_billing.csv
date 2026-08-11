@@ -1,0 +1,11 @@
+provider,account,resource,service,cost,usage_hours,project,environment,date
+AWS,aws-prod-001,ec2-prod-app-1,EC2,860.50,720,Customer Portal,prod,2026-07-01
+AWS,aws-dev-001,ec2-dev-test,EC2,120.75,60,Internal Tools,dev,2026-07-01
+Azure,azure-ops-001,vm-ops-data,Virtual Machine,540.80,680,Operations,prod,2026-07-01
+Azure,azure-data-001,sql-data-warehouse,SQL Database,420.20,480,Analytics,prod,2026-07-01
+GCP,gcp-project-001,gke-cluster-1,GKE,310.40,720,AI Platform,prod,2026-07-01
+GCP,gcp-dev-001,storage-backup,Cloud Storage,95.20,720,Internal Tools,dev,2026-07-01
+AWS,aws-prod-002,rds-order-db,RDS,615.00,720,Customer Portal,prod,2026-06-01
+Azure,azure-prod-002,app-service-prod,App Service,220.35,720,Operations,prod,2026-06-01
+GCP,gcp-ops-001,compute-engine-1,Compute Engine,180.60,480,Analytics,prod,2026-06-01
+AWS,aws-test-001,ec2-test-1,EC2,48.40,100,Internal Tools,dev,2026-06-01

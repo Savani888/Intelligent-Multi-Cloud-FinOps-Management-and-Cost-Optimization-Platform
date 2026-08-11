@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-row">
+          <div>
+            <h1>{{ page_title }}</h1>
+            <p>College-level FinOps dashboard with multi-cloud visibility, cost charts, and optimization recommendations.</p>
+          </div>
+          <div>
+            <a class="button" href="/upload">Upload billing CSV</a>
+          </div>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-grid">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <section class="cards">
+        <div class="card">
+          <h2>Total cloud spend</h2>
+          <p class="big">${{ '%.2f' | format(total_cost) }}</p>
+          <p class="note">Aggregated across AWS, Azure, and GCP.</p>
+        </div>
+        <div class="card">
+          <h2>Providers</h2>
+          <ul>
+            {% for provider, cost in cost_by_provider.items() %}
+              <li>{{ provider }}: ${{ '%.2f' | format(cost) }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Projects</h2>
+          <ul>
+            {% for project, cost in cost_by_project.items() %}
+              <li>{{ project }}: ${{ '%.2f' | format(cost) }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+
+      <section class="chart-row">
+        <div class="chart-card card">
+          <h2>Monthly cost trend</h2>
+          <div class="canvas-wrapper">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card card">
+          <h2>Provider cost share</h2>
+          <div class="canvas-wrapper">
+            <canvas id="providerChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      {% if alerts %}
+      <section>
+        <h2>Budget alerts</h2>
+        <div class="alert-list">
+          {% for alert in alerts %}
+            <div class="alert">{{ alert }}</div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section>
+        <h2>Top resources by cost</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Resource</th>
+              <th>Provider</th>
+              <th>Service</th>
+              <th>Project</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for resource in top_resources %}
+              <tr>
+                <td>{{ resource.resource }}</td>
+                <td>{{ resource.provider }}</td>
+                <td>{{ resource.service }}</td>
+                <td>{{ resource.project }}</td>
+                <td>${{ '%.2f' | format(resource.cost) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Optimization recommendations</h2>
+        <ul class="recommendations">
+          {% for note in recommendations %}
+            <li>{{ note }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <footer>
+        <p>Upload a CSV using the upload page for a real-world billing dataset. Use the sample template to test the uploader.</p>
+      </footer>
+    </div>
+
+    <script>
+      const trendCtx = document.getElementById('trendChart');
+      if (trendCtx) {
+        new Chart(trendCtx, {
+          type: 'line',
+          data: {
+            labels: {{ monthly_labels | tojson }},
+            datasets: [{
+              label: 'Monthly spend',
+              data: {{ monthly_values | tojson }},
+              borderColor: '#4f46e5',
+              backgroundColor: 'rgba(79, 70, 229, 0.15)',
+              fill: true,
+              tension: 0.3,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true },
+            },
+          },
+        });
+      }
+
+      const providerCtx = document.getElementById('providerChart');
+      if (providerCtx) {
+        new Chart(providerCtx, {
+          type: 'doughnut',
+          data: {
+            labels: {{ provider_labels | tojson }},
+            datasets: [{
+              data: {{ provider_values | tojson }},
+              backgroundColor: ['#2563eb', '#0f766e', '#9333ea'],
+              borderWidth: 0,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
