@@ -1,0 +1,18 @@
+{
+  "alice": {
+    "password": "password123",
+    "team": "Product"
+  },
+  "bob": {
+    "password": "password123",
+    "team": "Engineering"
+  },
+  "carol": {
+    "password": "password123",
+    "team": "FinOps"
+  },
+  "dan": {
+    "password": "password123",
+    "team": "Analytics"
+  }
+}

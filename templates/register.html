@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign Up - FinOps Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-row">
+          <div>
+            <h1>Sign Up</h1>
+            <p>Create an account to access your team dashboard.</p>
+          </div>
+          <div>
+            <a class="button" href="/">Back to dashboard</a>
+          </div>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-grid">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="card">
+        <form method="post">
+          <label class="input-label">
+            Username
+            <input type="text" name="username" required>
+          </label>
+          <label class="input-label">
+            Password
+            <input type="password" name="password" required>
+          </label>
+          <label class="input-label">
+            Confirm Password
+            <input type="password" name="confirm_password" required>
+          </label>
+          <label class="input-label">
+            Team
+            <select name="team" required>
+              <option value="">Select a team</option>
+              {% for team in teams %}
+                <option value="{{ team }}">{{ team }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="button" type="submit">Create Account</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

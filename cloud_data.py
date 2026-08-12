@@ -1,4 +1,5 @@
 import csv
+import json
 from collections import defaultdict
 from datetime import datetime
 
@@ -14,9 +15,24 @@ SAMPLE_CSV_HEADERS = [
     'date',
 ]
 
+PROJECT_TEAM_MAP = {
+    'Customer Portal': 'Product',
+    'Internal Tools': 'Engineering',
+    'Operations': 'FinOps',
+    'Analytics': 'Analytics',
+    'AI Platform': 'Analytics',
+}
+
+TEAMS = ['Product', 'Engineering', 'FinOps', 'Analytics']
+
+
+def save_users(user_file, users):
+    with open(user_file, 'w', encoding='utf-8') as handle:
+        json.dump(users, handle, indent=2)
+
 
 def load_mock_cost_data():
-    return [
+    rows = [
         {
             'provider': 'AWS',
             'account': 'aws-prod-001',
@@ -129,6 +145,15 @@ def load_mock_cost_data():
         },
     ]
 
+    for row in rows:
+        row['team'] = PROJECT_TEAM_MAP.get(row['project'], 'Unknown')
+    return rows
+
+
+def load_users(user_file):
+    with open(user_file, 'r', encoding='utf-8') as handle:
+        return json.load(handle)
+
 
 def aggregate_costs(rows):
     total_cost = sum(row['cost'] for row in rows)
@@ -147,6 +172,10 @@ def aggregate_costs(rows):
         'cost_by_project': cost_by_project,
         'top_resources': top_resources,
     }
+
+
+def filter_rows_by_team(rows, team_name):
+    return [row for row in rows if row.get('team') == team_name]
 
 
 def get_optimization_recommendations(rows):
@@ -209,7 +238,7 @@ def monthly_costs(rows):
     return labels, values
 
 
-def provider_percentages(rows):
+def get_provider_percentages(rows):
     provider_totals = defaultdict(float)
     for row in rows:
         provider_totals[row['provider']] += row['cost']
@@ -240,6 +269,9 @@ def parse_csv_rows(file):
     rows = [normalize_row(row) for row in reader if row.get('provider')]
     if not rows:
         raise ValueError('CSV file contains no valid cost rows.')
+
+    for row in rows:
+        row['team'] = PROJECT_TEAM_MAP.get(row['project'], 'Unknown')
     return rows
 
 
