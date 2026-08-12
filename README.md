@@ -1,6 +1,5 @@
 # Intelligent Multi-Cloud FinOps Demo
 
-A polished college-level cloud cost platform prototype for multi-cloud visibility and optimization.
 
 ## Features
 
