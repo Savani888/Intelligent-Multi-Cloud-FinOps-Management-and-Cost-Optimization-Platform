@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multi-Cloud FinOps Home</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container home-page">
+      <header>
+        <div class="header-row">
+          <div>
+            <h1>Intelligent Multi-Cloud FinOps</h1>
+            <p class="lead">A college-ready FinOps demo for cloud cost analytics, team dashboards, and optimization guidance.</p>
+          </div>
+          <div class="header-buttons">
+            <a class="button" href="/dashboard">Main Dashboard</a>
+            <a class="button button-secondary" href="/analysis">Analysis</a>
+            {% if current_user %}
+              <a class="button button-secondary" href="/team">My Team</a>
+              <a class="button button-secondary" href="/logout">Logout</a>
+            {% else %}
+              <a class="button button-secondary" href="/login">Login</a>
+              <a class="button button-secondary" href="/register">Sign Up</a>
+            {% endif %}
+          </div>
+        </div>
+      </header>
+
+      {% if current_user %}
+        <div class="user-banner">
+          <strong>Logged in:</strong> {{ session.username }} &middot; <strong>Team:</strong> {{ current_user.team }}
+        </div>
+      {% endif %}
+
+      <section class="home-cards">
+        <div class="card">
+          <h2>Overview</h2>
+          <p>Use the dashboard to view total spend, provider breakdowns, and cost trends across AWS, Azure, and GCP.</p>
+        </div>
+        <div class="card">
+          <h2>Analysis</h2>
+          <p>Open the analysis page for allocation, chargeback, scheduler recommendations, policy warnings, and realtime cost signals.</p>
+        </div>
+        <div class="card">
+          <h2>Team view</h2>
+          <p>Sign in to see team-specific insights and workflow-relevant FinOps metrics for your department.</p>
+        </div>
+      </section>
+
+      <section class="hero">
+        <h2>Build a smarter cloud cost platform</h2>
+        <p>Demo features include: auth, team dashboards, CSV upload, cost alerts, rightsizing recommendations, chargeback, and policy review.</p>
+        <a class="button button-primary" href="/dashboard">Explore the Dashboard</a>
+      </section>
+
+      <footer>
+        <p>Need real data? Upload a sample billing CSV from the upload page once the app is running.</p>
+      </footer>
+    </div>
+  </body>
+</html>

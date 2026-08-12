@@ -15,8 +15,13 @@ from cloud_data import (
     aggregate_costs,
     filter_rows_by_team,
     get_budget_alerts,
+    get_chargeback_rules,
+    get_cost_allocation,
     get_optimization_recommendations,
+    get_policy_warnings,
     get_provider_percentages,
+    get_realtime_series,
+    get_scheduler_recommendations,
     load_mock_cost_data,
     load_users,
     monthly_costs,
@@ -78,10 +83,50 @@ def render_dashboard(rows, title, team_name=None):
     )
 
 
-@app.route('/', methods=['GET'])
+def render_analysis(rows, title):
+    summary = aggregate_costs(rows)
+    allocation = get_cost_allocation(rows)
+    chargebacks = get_chargeback_rules(rows)
+    scheduler = get_scheduler_recommendations(rows)
+    warnings = get_policy_warnings(rows)
+    realtime_labels, realtime_values = get_realtime_series(rows)
+    recommendations = get_optimization_recommendations(rows)
+    current_user = get_current_user()
+
+    return render_template(
+        'analysis.html',
+        page_title=title,
+        total_cost=summary['total_cost'],
+        cost_by_provider=summary['cost_by_provider'],
+        cost_by_project=summary['cost_by_project'],
+        top_resources=summary['top_resources'],
+        allocation=allocation,
+        chargebacks=chargebacks,
+        scheduler=scheduler,
+        warnings=warnings,
+        realtime_labels=realtime_labels,
+        realtime_values=realtime_values,
+        recommendations=recommendations,
+        current_user=current_user,
+    )
+
+
+@app.route('/')
+def home():
+    current_user = get_current_user()
+    return render_template('home.html', current_user=current_user)
+
+
+@app.route('/dashboard')
 def dashboard():
     rows = load_mock_cost_data()
-    return render_dashboard(rows, 'Global Multi-Cloud FinOps Dashboard')
+    return render_dashboard(rows, 'Main Multi-Cloud FinOps Dashboard')
+
+
+@app.route('/analysis')
+def analysis():
+    rows = load_mock_cost_data()
+    return render_analysis(rows, 'Cost Analysis & Optimization')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -140,7 +185,7 @@ def register():
 def logout():
     session.pop('username', None)
     flash('Logged out successfully.', 'success')
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('home'))
 
 
 @app.route('/team')

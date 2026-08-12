@@ -155,6 +155,77 @@ def load_users(user_file):
         return json.load(handle)
 
 
+def get_cost_allocation(rows):
+    allocation = {
+        'by_tag': defaultdict(float),
+        'by_department': defaultdict(float),
+    }
+
+    for row in rows:
+        cost = row['cost']
+        cost_center = row.get('tags', {}).get('cost_center', 'Unknown')
+        allocation['by_tag'][cost_center] += cost
+        allocation['by_department'][row.get('team', 'Unknown')] += cost
+
+    return {
+        'by_tag': dict(sorted(allocation['by_tag'].items(), key=lambda item: item[1], reverse=True)),
+        'by_department': dict(sorted(allocation['by_department'].items(), key=lambda item: item[1], reverse=True)),
+    }
+
+
+def get_chargeback_rules(rows):
+    chargebacks = defaultdict(float)
+    for row in rows:
+        chargebacks[row['project']] += row['cost']
+
+    total = sum(chargebacks.values())
+    return [
+        {
+            'project': project,
+            'allocated_cost': round(cost, 2),
+            'share_percent': round((cost / total) * 100, 1) if total else 0,
+        }
+        for project, cost in sorted(chargebacks.items(), key=lambda item: item[1], reverse=True)
+    ]
+
+
+def get_scheduler_recommendations(rows):
+    recommendations = []
+    for row in rows:
+        if row['environment'] == 'dev' and row['usage_hours'] > 600:
+            recommendations.append(
+                f"Schedule {row['resource']} ({row['provider']}) to shut down during off-hours."
+            )
+        if row['service'] == 'Cloud Storage' and row['usage_hours'] < 200:
+            recommendations.append(
+                f"Archive {row['resource']} ({row['provider']}) to save storage cost."
+            )
+    return recommendations if recommendations else ['No scheduler recommendations for current dataset.']
+
+
+def get_policy_warnings(rows):
+    warnings = []
+    for row in rows:
+        if 'cost_center' not in row.get('tags', {}):
+            warnings.append(f"{row['resource']} ({row['provider']}) is missing a cost_center tag.")
+        if row['environment'] == 'prod' and row['service'] == 'App Service' and row['cost'] < 150:
+            warnings.append(
+                f"{row['resource']} ({row['provider']}) is production but cost appears unusually low; check configuration."
+            )
+        if row['environment'] == 'dev' and row['usage_hours'] > 650:
+            warnings.append(
+                f"{row['resource']} ({row['provider']}) is dev and highly active; consider more aggressive schedule enforcement."
+            )
+    return warnings
+
+
+def get_realtime_series(rows):
+    labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    base_cost = sum(row['cost'] for row in rows) / 7
+    values = [round(base_cost * (0.85 + i * 0.03), 2) for i in range(7)]
+    return labels, values
+
+
 def aggregate_costs(rows):
     total_cost = sum(row['cost'] for row in rows)
     cost_by_provider = {}

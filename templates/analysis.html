@@ -13,11 +13,11 @@
         <div class="header-row">
           <div>
             <h1>{{ page_title }}</h1>
-            <p class="note">Review live multi-cloud cost trends, budgets, and provider breakdowns in one polished view.</p>
+            <p class="note">Dive into allocation, chargeback, policy warnings, and realtime cost signal for stronger FinOps decisions.</p>
           </div>
           <div class="header-buttons">
-            <a class="button" href="/analysis">Analysis</a>
-            
+            <a class="button" href="/dashboard">Dashboard</a>
+            <a class="button button-secondary" href="/upload">Upload CSV</a>
             {% if current_user %}
               <a class="button button-secondary" href="/team">My Team</a>
               <a class="button button-secondary" href="/logout">Logout</a>
@@ -31,9 +31,6 @@
           <div class="user-banner">
             <strong>Logged in:</strong> {{ session.username }} &middot; <strong>Team:</strong> {{ current_user.team }}
           </div>
-        {% endif %}
-        {% if team_name %}
-          <div class="team-banner">Showing data for team: {{ team_name }}</div>
         {% endif %}
       </header>
 
@@ -49,12 +46,11 @@
 
       <section class="cards">
         <div class="card">
-          <h2>Total cloud spend</h2>
+          <h2>Total cost</h2>
           <p class="big">${{ '%.2f' | format(total_cost) }}</p>
-          <p class="note">Aggregated across AWS, Azure, and GCP.</p>
         </div>
         <div class="card">
-          <h2>Providers</h2>
+          <h2>Top providers</h2>
           <ul>
             {% for provider, cost in cost_by_provider.items() %}
               <li>{{ provider }}: ${{ '%.2f' | format(cost) }}</li>
@@ -62,7 +58,7 @@
           </ul>
         </div>
         <div class="card">
-          <h2>Projects</h2>
+          <h2>Top projects</h2>
           <ul>
             {% for project, cost in cost_by_project.items() %}
               <li>{{ project }}: ${{ '%.2f' | format(cost) }}</li>
@@ -73,70 +69,89 @@
 
       <section class="chart-row">
         <div class="chart-card card">
-          <h2>Monthly cost trend</h2>
+          <h2>Realtime cost signal</h2>
           <div class="canvas-wrapper">
-            <canvas id="trendChart"></canvas>
+            <canvas id="realtimeChart"></canvas>
           </div>
         </div>
         <div class="chart-card card">
-          <h2>Provider cost share</h2>
-          <div class="canvas-wrapper">
-            <canvas id="providerChart"></canvas>
+          <h2>Cost allocation by team</h2>
+          <div class="allocation-list">
+            {% for team, cost in allocation.by_department.items() %}
+              <div class="allocation-row"><strong>{{ team }}</strong> ${{ '%.2f' | format(cost) }}</div>
+            {% endfor %}
           </div>
         </div>
       </section>
 
-      {% if alerts %}
-      <section>
-        <h2>Budget alerts</h2>
-        <div class="alert-list">
-          {% for alert in alerts %}
-            <div class="alert">{{ alert }}</div>
-          {% endfor %}
+      <section class="analysis-grid">
+        <div class="card">
+          <h2>Chargeback share</h2>
+          <table>
+            <thead>
+              <tr><th>Project</th><th>Cost</th><th>Share</th></tr>
+            </thead>
+            <tbody>
+              {% for item in chargebacks %}
+                <tr>
+                  <td>{{ item.project }}</td>
+                  <td>${{ '%.2f' | format(item.allocated_cost) }}</td>
+                  <td>{{ item.share_percent }}%</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Scheduler recommendations</h2>
+          <ul class="recommendations">
+            {% for note in scheduler %}
+              <li>{{ note }}</li>
+            {% endfor %}
+          </ul>
         </div>
       </section>
-      {% endif %}
 
-      <section>
-        <h2>Top resources by cost</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Resource</th>
-              <th>Provider</th>
-              <th>Service</th>
-              <th>Project</th>
-              <th>Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for resource in top_resources %}
-              <tr>
-                <td>{{ resource.resource }}</td>
-                <td>{{ resource.provider }}</td>
-                <td>{{ resource.service }}</td>
-                <td>{{ resource.project }}</td>
-                <td>${{ '%.2f' | format(resource.cost) }}</td>
-              </tr>
+      <section class="cards">
+        <div class="card">
+          <h2>Policy warnings</h2>
+          {% if warnings %}
+            <ul class="alert-list">
+              {% for warning in warnings %}
+                <li>{{ warning }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No policy warnings detected for current data.</p>
+          {% endif %}
+        </div>
+        <div class="card">
+          <h2>Action guidance</h2>
+          <ul class="recommendations">
+            {% for note in recommendations %}
+              <li>{{ note }}</li>
             {% endfor %}
-          </tbody>
-        </table>
+          </ul>
+        </div>
       </section>
 
+      <footer>
+        <p>Use this page to explore allocation and chargeback insight, then return to the main dashboard for summary trends.</p>
+      </footer>
     </div>
 
     <script>
-      const trendCtx = document.getElementById('trendChart');
-      if (trendCtx) {
-        new Chart(trendCtx, {
+      const realtimeCtx = document.getElementById('realtimeChart');
+      if (realtimeCtx) {
+        new Chart(realtimeCtx, {
           type: 'line',
           data: {
-            labels: {{ monthly_labels | tojson }},
+            labels: {{ realtime_labels | tojson }},
             datasets: [{
-              label: 'Monthly spend',
-              data: {{ monthly_values | tojson }},
-              borderColor: '#4f46e5',
-              backgroundColor: 'rgba(79, 70, 229, 0.15)',
+              label: 'Estimated daily cost',
+              data: {{ realtime_values | tojson }},
+              borderColor: '#0f766e',
+              backgroundColor: 'rgba(15, 118, 110, 0.18)',
               fill: true,
               tension: 0.3,
             }],
@@ -147,25 +162,6 @@
             scales: {
               y: { beginAtZero: true },
             },
-          },
-        });
-      }
-
-      const providerCtx = document.getElementById('providerChart');
-      if (providerCtx) {
-        new Chart(providerCtx, {
-          type: 'doughnut',
-          data: {
-            labels: {{ provider_labels | tojson }},
-            datasets: [{
-              data: {{ provider_values | tojson }},
-              backgroundColor: ['#2563eb', '#0f766e', '#9333ea'],
-              borderWidth: 0,
-            }],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
           },
         });
       }
